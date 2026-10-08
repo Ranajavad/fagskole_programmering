@@ -1,6 +1,9 @@
+
+
 import keyring
 import os
-
+import requests
+import json
 
 # Gammel metode: hente API-nøkkelen direkte fra Keyring
 # key: str = str(keyring.get_password("openweathermap", "api-key"))
@@ -26,12 +29,33 @@ def get_secret(app: str, name: str) -> str:
 
 
 env_key = get_env_property("OPENWEATHER_API_KEY")
-secret_key = get_secret("openweathermap", "api-key")
+apikey = get_secret("openweathermap", "api-key")
 
 print("Fant env-nøkkel:", bool(env_key))
-print("Fant secret-nøkkel:", bool(secret_key))
+print("Fant secret-nøkkel:", bool(apikey))
+
+base_url: str = "http://api.openweathermap.org/geo/1.0/direct"
+limit: int = 1
 
 cities: list[str] = ["Oslo,NO", "Bergen,NO", "Trondheim,NO"]
 
 for city in cities:
-    print(city)
+    url: str = f"{base_url}?q={city}&limit={limit}&appid={apikey}"
+    print(url)
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data: str = response.text
+
+        parser = json.loads(data)
+
+        for rec in parser:
+            rcity: str = rec.get("name", "Unknown")
+            lat: float = rec.get("lat")
+            lon: float = rec.get("lon")
+
+            print(f"City: {rcity}, coordinates: {lat},{lon}")
+
+    else:
+        print(f"failed to retrieve data. status code {response.status_code}")
