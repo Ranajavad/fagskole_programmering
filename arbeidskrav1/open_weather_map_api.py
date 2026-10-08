@@ -1,5 +1,5 @@
 
-
+from typing import Any
 import keyring
 import os
 import requests
@@ -17,6 +17,15 @@ def get_env_property(name: str) -> str:
 
     return value
 
+def getrequest(url: str, args: dict = {}) -> Any:
+    response = requests.get(url, args)
+
+    if response.status_code == 200:
+        data: str = response.text
+        print(data)
+        return json.loads(response.text)
+    else:
+        raise SystemError(f"Failed to retrieve data. Status code {response.status_code}")
 
 def get_secret(app: str, name: str) -> str:
     value = keyring.get_password(app, name)
@@ -26,6 +35,7 @@ def get_secret(app: str, name: str) -> str:
         return ""
 
     return value
+
 
 
 env_key = get_env_property("OPENWEATHER_API_KEY")
@@ -40,22 +50,17 @@ limit: int = 1
 cities: list[str] = ["Oslo,NO", "Bergen,NO", "Trondheim,NO"]
 
 for city in cities:
-    url: str = f"{base_url}?q={city}&limit={limit}&appid={apikey}"
-    print(url)
+    args: dict = {
+        "q": city,
+        "limit": limit,
+        "appid": apikey
+    }
 
-    response = requests.get(url)
+    parser = getrequest(base_url, args)
 
-    if response.status_code == 200:
-        data: str = response.text
+    for rec in parser:
+        rcity: str = rec.get("name", "Unknown")
+        lat: float = rec.get("lat")
+        lon: float = rec.get("lon")
 
-        parser = json.loads(data)
-
-        for rec in parser:
-            rcity: str = rec.get("name", "Unknown")
-            lat: float = rec.get("lat")
-            lon: float = rec.get("lon")
-
-            print(f"City: {rcity}, coordinates: {lat},{lon}")
-
-    else:
-        print(f"failed to retrieve data. status code {response.status_code}")
+        print(f"City: {rcity}, coordinates: {lat},{lon}")
